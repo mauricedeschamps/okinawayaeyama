@@ -22,7 +22,6 @@
       line-height: 1.5;
       min-height: 100vh;
     }
-    /* テーマ変数 (デフォルト ダークモード) */
     body.dark {
       --bg: #0a0f1a;
       --surface: #1e293b;
@@ -51,13 +50,11 @@
       background: var(--bg);
       color: var(--text);
     }
-    /* レイアウト */
     .container {
       max-width: 1200px;
       margin: 0 auto;
       padding: 16px;
     }
-    /* ヘッダー */
     header {
       background: var(--surface);
       border-bottom: 1px solid var(--border);
@@ -90,13 +87,15 @@
       font-weight: 500;
       cursor: pointer;
       color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
     button.active {
       background: var(--primary);
       color: white;
       border-color: var(--primary);
     }
-    /* カード */
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -128,7 +127,6 @@
       font-weight: 600;
       margin-bottom: 8px;
     }
-    /* 詳細ページ */
     .back-bar {
       display: flex;
       gap: 12px;
@@ -157,7 +155,6 @@
     .item-card h3 {
       margin-bottom: 8px;
     }
-    /* 個別詳細 */
     .detail-card {
       background: var(--card-bg);
       border-radius: 28px;
@@ -178,7 +175,6 @@
       text-decoration: none;
       font-weight: 500;
     }
-    /* スポンサー */
     .sponsor {
       background: var(--sponsor-bg);
       border-radius: 20px;
@@ -193,11 +189,6 @@
       border-radius: 12px;
       margin-bottom: 10px;
     }
-    .sponsor a {
-      color: var(--primary);
-      text-decoration: none;
-    }
-    /* マップ */
     .map-container {
       margin: 32px 0;
       border-radius: 24px;
@@ -209,7 +200,6 @@
       height: 300px;
       border: 0;
     }
-    /* フッター */
     footer {
       margin-top: 48px;
       padding: 28px 16px;
@@ -222,13 +212,14 @@
       color: var(--primary);
       text-decoration: none;
     }
-    hr {
-      border-color: var(--border);
-      margin: 24px 0;
-    }
     .section-title {
       font-size: 1.8rem;
       margin: 32px 0 16px;
+    }
+    .sub-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 20px;
     }
   </style>
 </head>
@@ -241,197 +232,465 @@
     </div>
   </header>
 
-  <main class="container" id="main-content">
-    <!-- 動的にページが描画される -->
-  </main>
+  <main class="container" id="main-content"></main>
 
   <footer>
     <p><a href="mailto:mementomorikatsu@gmail.com">Contact us<br>mementomorikatsu@gmail.com</a></p>
   </footer>
 
   <script>
-    // ---------- 多言語データ ----------
-    const languages = { en: "English", it: "Italiano", ru: "Русский", ja: "日本語" };
-    let currentLang = "en";   // 英語メイン
+    // ---------- 多言語設定 ----------
+    const languages = { en: "🇬🇧 English", it: "🇮🇹 Italiano", ru: "🇷🇺 Русский", ja: "🇯🇵 日本語" };
+    let currentLang = "en";
     let currentTheme = "dark";
-    
-    // エリア定義 (6 + 慶良間 + 石垣・宮古を別枠として2エリアに分割 = 合計8エリア表示だが構造上8エリア)
-    // 南部は知念岬に変更済み, 比地大滝→ター滝
+
+    // エリア定義 (Chubu → Central area)
     const areas = [
       { id: "yanbaru", nameKey:"yanbaru", img:"https://placehold.co/600x400/2c5f2d/white?text=Yanbaru" },
       { id: "motobu", nameKey:"motobu", img:"https://placehold.co/600x400/1e4a76/white?text=Motobu" },
       { id: "onnna_yomitan", nameKey:"onnna", img:"https://placehold.co/600x400/0f4c5c/white?text=Onna+Yomitan" },
-      { id: "chubu", nameKey:"chubu", img:"https://placehold.co/600x400/57534e/white?text=Chubu" },
+      { id: "chubu", nameKey:"central", img:"https://placehold.co/600x400/57534e/white?text=Central+Area" },  // 変更
       { id: "naha", nameKey:"naha", img:"https://placehold.co/600x400/854d0e/white?text=Naha+area" },
       { id: "southern", nameKey:"southern", img:"https://placehold.co/600x400/166534/white?text=Southern" },
-      { id: "kerama", nameKey:"kerama", img:"https://placehold.co/600x400/0891b2/white?text=Kerama" },
-      { id: "ishigaki_miyako", nameKey:"ishigaki_miyako", img:"https://placehold.co/600x400/0f4c5c/white?text=Ishigaki+Miyako" }
+      { id: "kerama", nameKey:"kerama", img:"https://placehold.co/600x400/0891b2/white?text=Kerama+Islands" },
+      { id: "ishigaki_miyako", nameKey:"ishigaki_miyako", img:"https://placehold.co/600x400/0f4c5c/white?text=Ishigaki+%26+Miyako" }
     ];
-    
-    // 観光地・ビーチデータ (各エリア5スポット+5ビーチ 簡略例。実際には多くのデータ)
-    // 構造: areaId, type, name, desc, location, url, img
-    // ※本番では充実させるが、ここでは各エリア最低2～3サンプル掲載、要件を満たすために各エリア5スポット/5ビーチと仮データを表示する仕組み。
-    // デモのため、全項目を手動記述は省略するが、動的に生成して「まもなく追加」回避せず、具体的な場所名を入れる。
-    // 制限時間内に完全データを書くのは非現実的ゆえ、構造を示しながら実際にユーザーが見て触れられるよう主要データを設定。
-    // 南部に知念岬、ヤンバルにター滝を反映.
-    const spotsData = {
+
+    // ---------- 充実した観光・ビーチデータ (詳細説明つき) ----------
+    // 通常エリア (ヤンバル, 本部, 恩納・読谷, 中部, 那覇, 南部) は直接スポット・ビーチ
+    const normalAreaData = {
       yanbaru: {
         spots: [
-          { name: "Cape Hedo", name_jp: "辺戸岬", desc: "Northernmost point", location: "Kunigami", url: "#" },
-          { name: "Daisekirinzan", name_jp: "大石林山", desc: "Rock park", location: "Kunigami", url: "#" },
-          { name: "Tar Waterfall", name_jp: "ター滝", desc: "Powerful waterfall", location: "Yanbaru", url: "#" },
-          { name: "Yanbaru Kuina Center", name_jp: "ヤンバルクイナセンター", desc: "Eco museum", location: "Ogimi", url: "#" },
-          { name: "Okuma Beach Resort", name_jp: "オクマビーチ", desc: "Resort beach", location: "Kunigami", url: "#" }
+          { name: "Cape Hedo", name_jp: "辺戸岬", desc: "The northernmost point of Okinawa's main island, offering dramatic cliff views and powerful waves crashing below.", location: "Kunigami", url: "https://visitokinawa.jp/spot/1814" },
+          { name: "Daisekirinzan", name_jp: "大石林山", desc: "A sacred rocky mountain with bizarre rock formations, considered a power spot where the gods dwell.", location: "Kunigami", url: "https://www.daisekirinzan.com/en/" },
+          { name: "Tar Waterfall", name_jp: "ター滝", desc: "A majestic waterfall hidden deep in the Yanbaru jungle, reachable via a moderate hiking trail.", location: "Kunigami", url: "#" },
+          { name: "Yanbaru Kuina Center", name_jp: "ヤンバルクイナ生態展示学習施設", desc: "Learn about the endangered flightless bird 'Yanbaru Kuina' and conservation efforts.", location: "Ogimi", url: "#" },
+          { name: "Okuma Beach Resort", name_jp: "オクマビーチ", desc: "A resort beach with white sand and crystal clear water, ideal for relaxation and marine sports.", location: "Kunigami", url: "#" }
         ],
         beaches: [
-          { name: "Okuma Beach", name_jp: "オクマビーチ", desc: "White sand", location: "Okuma", url: "#" },
-          { name: "21st Century Forest Beach", name_jp: "21世紀の森", desc: "Quiet cove", location: "Kunigami", url: "#" },
-          { name: "Yagaji Beach", name_jp: "屋我地ビーチ", desc: "Shallow", location: "Yagaji", url: "#" },
-          { name: "Kouri Beach", name_jp: "古宇利ビーチ", desc: "Emerald", location: "Kouri", url: "#" },
-          { name: "Kariyushi Beach", name_jp: "かりゆしビーチ", desc: "Fun activities", location: "Kunigami", url: "#" }
+          { name: "Okuma Beach", name_jp: "オクマビーチ", desc: "A long stretch of white sand with gentle waves, perfect for families.", location: "Okuma", url: "#" },
+          { name: "21st Century Forest Beach", name_jp: "21世紀の森ビーチ", desc: "A quiet, natural beach surrounded by pine trees, less crowded and very peaceful.", location: "Kunigami", url: "#" },
+          { name: "Yagaji Beach", name_jp: "屋我地ビーチ", desc: "Shallow waters ideal for small children; beautiful sunset views.", location: "Yagaji", url: "#" },
+          { name: "Kouri Beach", name_jp: "古宇利ビーチ", desc: "Emerald green waters and soft sand, located at the foot of the iconic Kouri Bridge.", location: "Kouri", url: "#" },
+          { name: "Kariyushi Beach", name_jp: "かりゆしビーチ", desc: "Well-equipped beach offering various water activities and a relaxing atmosphere.", location: "Kunigami", url: "#" }
+        ]
+      },
+      motobu: {
+        spots: [
+          { name: "Churaumi Aquarium", name_jp: "美ら海水族館", desc: "One of the world's largest aquariums, famous for its giant whale sharks and manta rays.", location: "Motobu", url: "https://churaumi.okinawa/en/" },
+          { name: "Bise Fukugi Tree Road", name_jp: "備瀬のフクギ並木", desc: "A picturesque path lined with hundreds of Fukugi trees, offering a cool, shaded walk.", location: "Motobu", url: "#" },
+          { name: "Kouri Ohashi Bridge", name_jp: "古宇利大橋", desc: "A 2km-long bridge spanning emerald waters, connecting the main island to Kouri Island.", location: "Motobu", url: "#" },
+          { name: "Nakijin Castle Ruins", name_jp: "今帰仁城跡", desc: "A UNESCO World Heritage site, once the castle of the Hokuzan Kingdom, with stunning cherry blossoms in spring.", location: "Nakijin", url: "#" },
+          { name: "Mount Yaedake", name_jp: "八重岳", desc: "Famous for Japan's earliest cherry blossoms (Kanhizakura) blooming from late January.", location: "Motobu", url: "#" }
+        ],
+        beaches: [
+          { name: "Emerald Beach", name_jp: "エメラルドビーチ", desc: "Located inside Ocean Expo Park, this artificial beach offers safe swimming and beautiful views.", location: "Motobu", url: "#" },
+          { name: "Sesoko Beach", name_jp: "瀬底ビーチ", desc: "A natural beach with exceptionally high transparency and a wide sandy shore.", location: "Motobu", url: "#" },
+          { name: "Minnajima", name_jp: "水納島", desc: "A small crescent-shaped island accessible by ferry, known as 'Croissant Island'.", location: "Motobu", url: "#" },
+          { name: "Bisezaki", name_jp: "備瀬崎", desc: "A snorkeling spot with rich coral reefs just off the coast.", location: "Motobu", url: "#" },
+          { name: "Anti Beach", name_jp: "アンチ浜", desc: "A hidden local beach accessible through the Fukugi tree path, quiet and serene.", location: "Motobu", url: "#" }
+        ]
+      },
+      onnna_yomitan: {
+        spots: [
+          { name: "Manzamo", name_jp: "万座毛", desc: "A dramatic cliff shaped like an elephant's trunk, offering panoramic ocean views.", location: "Onna", url: "#" },
+          { name: "Ryukyu Mura", name_jp: "琉球村", desc: "An open-air museum showcasing traditional Ryukyu houses and cultural performances.", location: "Onna", url: "https://www.ryukyumura.co.jp/en/" },
+          { name: "Zampa Misaki", name_jp: "残波岬", desc: "A 30m-high cliff with a lighthouse, offering spectacular sunset views.", location: "Yomitan", url: "#" },
+          { name: "Zakimi Castle Ruins", name_jp: "座喜味城跡", desc: "A UNESCO World Heritage site known for its beautiful curved stone walls.", location: "Yomitan", url: "#" },
+          { name: "Blue Cave", name_jp: "青の洞窟", desc: "A sea cave where sunlight creates brilliant blue reflections, popular for snorkeling and diving.", location: "Onna", url: "#" }
+        ],
+        beaches: [
+          { name: "Zampa Beach", name_jp: "残波ビーチ", desc: "A well-equipped beach with water slides and marine activities.", location: "Yomitan", url: "#" },
+          { name: "Nirai Beach", name_jp: "ニライビーチ", desc: "A calm beach with shallow waters, ideal for families.", location: "Yomitan", url: "#" },
+          { name: "Manza Beach", name_jp: "万座ビーチ", desc: "A beach near ANA Intercontinental Manza Beach Resort, with clear blue waters.", location: "Onna", url: "#" },
+          { name: "Nabii Beach", name_jp: "ナビービーチ", desc: "A family-friendly beach with gentle waves and lifeguards.", location: "Onna", url: "#" },
+          { name: "Toguchi Beach", name_jp: "渡具知ビーチ", desc: "A small, quiet beach with a park and barbecue facilities.", location: "Yomitan", url: "#" }
+        ]
+      },
+      chubu: {
+        spots: [
+          { name: "Kaidomichi (Ocean Road)", name_jp: "海中道路", desc: "A 4.7km-long road crossing turquoise waters, connecting the main island to remote islands.", location: "Uruma", url: "#" },
+          { name: "American Village", name_jp: "アメリカンビレッジ", desc: "A vibrant entertainment district with shopping, dining, and a Ferris wheel, inspired by the US.", location: "Chatan", url: "https://american-village.com/en/" },
+          { name: "Bios no Oka", name_jp: "ビオスの丘", desc: "A subtropical garden with wildlife, boat tours, and water buffalo carts.", location: "Uruma", url: "#" },
+          { name: "Katsuren Castle Ruins", name_jp: "勝連城跡", desc: "A UNESCO World Heritage site offering panoramic views of the surrounding ocean and islands.", location: "Uruma", url: "#" },
+          { name: "Sunset Beach", name_jp: "北谷公園サンセットビーチ", desc: "A beautiful beach near American Village, famous for its stunning sunsets.", location: "Chatan", url: "#" }
+        ],
+        beaches: [
+          { name: "Ikei Beach", name_jp: "伊計ビーチ", desc: "A pristine beach on Ikei Island, accessible via Kaichu Doro, with excellent snorkeling.", location: "Uruma", url: "#" },
+          { name: "Kaidomichi Beach", name_jp: "海中道路ビーチ", desc: "A convenient beach next to Ayahashi Kan rest area, ideal for a quick swim.", location: "Uruma", url: "#" },
+          { name: "Hamahiga Beach", name_jp: "浜比嘉ビーチ", desc: "A calm, shallow beach on the sacred island of Hamahiga.", location: "Uruma", url: "#" },
+          { name: "Odomari Beach", name_jp: "大泊ビーチ", desc: "A local favorite with clean sand and gentle waves.", location: "Uruma", url: "#" },
+          { name: "Uken Beach", name_jp: "宇堅ビーチ", desc: "A peaceful beach with barbecue pits and showers.", location: "Uruma", url: "#" }
+        ]
+      },
+      naha: {
+        spots: [
+          { name: "Kokusai Dori", name_jp: "国際通り", desc: "Naha's main shopping street, packed with souvenir shops, restaurants, and entertainment.", location: "Naha", url: "#" },
+          { name: "Shuri Castle", name_jp: "首里城", desc: "The former palace of the Ryukyu Kingdom, a UNESCO World Heritage site (currently under reconstruction after fire).", location: "Naha", url: "https://oki-park.jp/shurijo/en/" },
+          { name: "Naminoue Shrine", name_jp: "波上宮", desc: "A Shinto shrine perched on a cliff overlooking the ocean, also a popular sunset spot.", location: "Naha", url: "#" },
+          { name: "Senagajima", name_jp: "瀬長島", desc: "A small island connected by bridge, known for its white buildings, hot springs, and airplane views.", location: "Tomigusuku", url: "#" },
+          { name: "Makishi Public Market", name_jp: "牧志公設市場", desc: "The kitchen of Naha, offering fresh seafood, produce, and local delicacies.", location: "Naha", url: "#" }
+        ],
+        beaches: [
+          { name: "Naminoue Beach", name_jp: "波の上ビーチ", desc: "The only public beach within Naha city, with calm waves and a swimming area.", location: "Naha", url: "#" },
+          { name: "Toyosaki Chura Sun Beach", name_jp: "豊崎美らSUNビーチ", desc: "A large man-made beach with showers, lockers, and nearby park facilities.", location: "Tomigusuku", url: "#" },
+          { name: "Senaga Beach", name_jp: "瀬長ビーチ", desc: "A small beach on the west side of Senagajima, offering beautiful sunsets and plane spotting.", location: "Tomigusuku", url: "#" },
+          { name: "Ginowan Tropical Beach", name_jp: "宜野湾トロピカルビーチ", desc: "A well-maintained artificial beach adjacent to a marina, popular for walks and swimming.", location: "Ginowan", url: "#" },
+          { name: "Araha Beach", name_jp: "安良波ビーチ", desc: "A wide, sandy beach with a playground, ideal for families.", location: "Chatan", url: "#" }
         ]
       },
       southern: {
         spots: [
-          { name: "Chinen Cape", name_jp: "知念岬", desc: "Ocean viewpoint", location: "Nanjo", url: "#" },
-          { name: "Sefa Utaki", name_jp: "斎場御嶽", desc: "Sacred site", location: "Nanjo", url: "#" },
-          { name: "Gangala Valley", name_jp: "ガンガラーの谷", desc: "Jungle tour", location: "Nanjo", url: "#" },
-          { name: "Nirai Kanai Bridge", name_jp: "ニライカナイ橋", desc: "Scenic drive", location: "Nanjo", url: "#" },
-          { name: "Kiyo Misaki", name_jp: "喜屋武岬", desc: "Cliff view", location: "Itoman", url: "#" }
+          { name: "Chinen Cape", name_jp: "知念岬", desc: "A scenic cape with a grassy park, offering panoramic views of the Pacific Ocean and nearby islands.", location: "Nanjo", url: "#" },
+          { name: "Sefa Utaki", name_jp: "斎場御嶽", desc: "The most sacred site in the Ryukyu Kingdom, a UNESCO World Heritage site with natural rock formations.", location: "Nanjo", url: "#" },
+          { name: "Gangala Valley", name_jp: "ガンガラーの谷", desc: "A lush jungle valley formed by a collapsed limestone cave, guided tours explore its history and nature.", location: "Nanjo", url: "https://gangala.com/en/" },
+          { name: "Nirai Kanai Bridge", name_jp: "ニライカナイ橋", desc: "A scenic bridge with breathtaking views of the ocean and the legendary 'Nirai Kanai' island.", location: "Nanjo", url: "#" },
+          { name: "Kiyo Misaki", name_jp: "喜屋武岬", desc: "A rugged cliff at the southern tip, famous for its dramatic scenery and war memorial.", location: "Itoman", url: "#" }
         ],
         beaches: [
-          { name: "Hyakuna Beach", name_jp: "百名ビーチ", desc: "Hidden gem", location: "Nanjo", url: "#" },
-          { name: "Bibi Beach Itoman", name_jp: "美々ビーチいとまん", desc: "Family friendly", location: "Itoman", url: "#" },
-          { name: "Hanagusuku Beach", name_jp: "玻名城ビーチ", desc: "Local spot", location: "Haebaru", url: "#" },
-          { name: "Azama Sun Sun Beach", name_jp: "あざまサンサンビーチ", desc: "Calm waves", location: "Nanjo", url: "#" },
-          { name: "John Man Beach", name_jp: "ジョン万ビーチ", desc: "Rustic", location: "Itoman", url: "#" }
+          { name: "Hyakuna Beach", name_jp: "百名ビーチ", desc: "A hidden gem with calm, clear waters, popular among locals for snorkeling.", location: "Nanjo", url: "#" },
+          { name: "Bibi Beach Itoman", name_jp: "美々ビーチいとまん", desc: "A man-made beach with gentle slopes, perfect for families with children.", location: "Itoman", url: "#" },
+          { name: "Hanagusuku Beach", name_jp: "玻名城ビーチ", desc: "A quiet, local beach with soft sand and shallow water.", location: "Haebaru", url: "#" },
+          { name: "Azama Sun Sun Beach", name_jp: "あざまサンサンビーチ", desc: "A well-equipped beach in Nanjo, known for its calm waters and BBQ areas.", location: "Nanjo", url: "#" },
+          { name: "John Man Beach", name_jp: "ジョン万ビーチ", desc: "A rustic natural beach with a unique name, offering solitude and natural beauty.", location: "Itoman", url: "#" }
         ]
       }
     };
-    // 他のエリアの簡易データ (省略簡略だが、表示崩れ防止のため最低限コピー)
-    const emptyArea = { spots: [], beaches: [] };
-    const fallbackData = {
-      motobu: { spots: [{name:"Churaumi Aquarium", name_jp:"美ら海水族館"},{name:"Bise Fukugi",name_jp:"備瀬フクギ"},{name:"Kouri Bridge",name_jp:"古宇利大橋"},{name:"Nakijin Castle",name_jp:"今帰仁城"},{name:"Mt. Yaedake",name_jp:"八重岳"}], beaches:[{name:"Emerald Beach",name_jp:"エメラルドビーチ"},{name:"Sesoko Beach",name_jp:"瀬底ビーチ"},{name:"Minnajima",name_jp:"水納島"},{name:"Bisezaki",name_jp:"備瀬崎"},{name:"Anti Beach",name_jp:"アンチ浜"}] },
-      onnna_yomitan: { spots: [{name:"Manzamo",name_jp:"万座毛"},{name:"Ryukyu Mura",name_jp:"琉球村"},{name:"Zampa Misaki",name_jp:"残波岬"},{name:"Zakimi Castle",name_jp:"座喜味城"},{name:"Blue Cave",name_jp:"青の洞窟"}], beaches:[{name:"Zampa Beach",name_jp:"残波ビーチ"},{name:"Nirai Beach",name_jp:"ニライビーチ"},{name:"Manza Beach",name_jp:"万座ビーチ"},{name:"Nabii Beach",name_jp:"ナビービーチ"},{name:"Toguchi Beach",name_jp:"渡具知ビーチ"}] },
-      chubu: { spots: [{name:"Kaidomichi",name_jp:"海中道路"},{name:"American Village",name_jp:"アメリカンビレッジ"},{name:"Bios no Oka",name_jp:"ビオスの丘"},{name:"Katsuren Castle",name_jp:"勝連城跡"},{name:"Sunset Beach",name_jp:"サンセットビーチ"}], beaches:[{name:"Ikei Beach",name_jp:"伊計ビーチ"},{name:"Kaidomichi Beach",name_jp:"海中道路ビーチ"},{name:"Hamahiga Beach",name_jp:"浜比嘉ビーチ"},{name:"Odomari Beach",name_jp:"大泊ビーチ"},{name:"Uken Beach",name_jp:"宇堅ビーチ"}] },
-      naha: { spots: [{name:"Kokusai Dori",name_jp:"国際通り"},{name:"Shuri Castle",name_jp:"首里城"},{name:"Naminoue Shrine",name_jp:"波上宮"},{name:"Senagajima",name_jp:"瀬長島"},{name:"Makishi Market",name_jp:"牧志市場"}], beaches:[{name:"Naminoue Beach",name_jp:"波の上ビーチ"},{name:"Toyosaki Chura Sun",name_jp:"豊崎美らSUN"},{name:"Senaga Beach",name_jp:"瀬長ビーチ"},{name:"Ginowan Tropical",name_jp:"宜野湾トロピカル"},{name:"Araha Beach",name_jp:"安良波ビーチ"}] },
-      kerama: { spots: [{name:"Ama Beach View",name_jp:"阿真ビーチ展望台"},{name:"Tokashiku Beach View",name_jp:"渡嘉志久展望"},{name:"Kerama Visitor Center",name_jp:"慶良間ビジターセンター"},{name:"Furuzamami Coral",name_jp:"古座間味サンゴ"},{name:"Nishihama Sunset",name_jp:"ニシ浜夕日"}], beaches:[{name:"Furuzamami Beach",name_jp:"古座間味ビーチ"},{name:"Ama Beach",name_jp:"阿真ビーチ"},{name:"Nishihama",name_jp:"ニシ浜"},{name:"Tokee Beach",name_jp:"トケイ浜"},{name:"Kitahama",name_jp:"北浜"}] },
-      ishigaki_miyako: { spots: [{name:"Kabira Bay",name_jp:"川平湾"},{name:"Yonaha Maehama",name_jp:"与那覇前浜"},{name:"Pinaisara Falls",name_jp:"ピナイサーラの滝"},{name:"Higashi Hennazaki",name_jp:"東平安名崎"},{name:"Taketomi Village",name_jp:"竹富島水牛車"}], beaches:[{name:"Kondoi Beach",name_jp:"コンドイ浜"},{name:"Sunayama Beach",name_jp:"砂山ビーチ"},{name:"Miyara Beach",name_jp:"米原ビーチ"},{name:"Shinjo Coast",name_jp:"新城海岸"},{name:"Yarabu Beach",name_jp:"屋良浜"}] }
+
+    // 慶良間諸島：サブエリア（渡嘉敷島、阿嘉島、座間味島）
+    const keramaSubAreas = {
+      tokashiki: { name: "Tokashiki Island", name_jp: "渡嘉敷島", img: "https://placehold.co/600x400/1e7a5e/white?text=Tokashiki" },
+      akajima: { name: "Akajima Island", name_jp: "阿嘉島", img: "https://placehold.co/600x400/0f766e/white?text=Akajima" },
+      zamami: { name: "Zamami Island", name_jp: "座間味島", img: "https://placehold.co/600x400/0d9488/white?text=Zamami" }
     };
-    // マージ
-    for(let area of areas){
-      if(!spotsData[area.id]) spotsData[area.id] = fallbackData[area.id] || { spots:[], beaches:[] };
-    }
-    
+
+    const keramaDetailedData = {
+      tokashiki: {
+        spots: [
+          { name: "Tokashiku Beach Viewpoint", name_jp: "渡嘉志久ビーチ展望台", desc: "Overlooking the stunning turquoise waters of Tokashiku Beach, perfect for photos.", location: "Tokashiki", url: "#" },
+          { name: "Aharen Beach Observation Deck", name_jp: "阿波連ビーチ展望台", desc: "A panoramic view of Aharen Beach's white sand and coral reefs.", location: "Tokashiki", url: "#" },
+          { name: "Mount Akamine", name_jp: "赤嶺山", desc: "The highest peak on Tokashiki, offering a 360-degree view of the Kerama islands.", location: "Tokashiki", url: "#" },
+          { name: "Kerama Blue Visitor Center", name_jp: "慶良間ブルービジターセンター", desc: "Learn about the marine ecosystem and conservation of Kerama's sea turtles.", location: "Tokashiki", url: "#" },
+          { name: "Hanaari Island (uninhabited)", name_jp: "ハナリ島", desc: "A small uninhabited island visible from Tokashiki, popular for boat tours and snorkeling.", location: "Tokashiki", url: "#" }
+        ],
+        beaches: [
+          { name: "Tokashiku Beach", name_jp: "渡嘉志久ビーチ", desc: "A beautiful beach with gentle waves and rich marine life, great for beginners to snorkel.", location: "Tokashiki", url: "#" },
+          { name: "Aharen Beach", name_jp: "阿波連ビーチ", desc: "A long stretch of white sand with clear, calm waters; ideal for swimming and kayaking.", location: "Tokashiki", url: "#" },
+          { name: "Nishibama", name_jp: "西浜", desc: "A secluded beach on the west side, accessible by trail or boat, offering total privacy.", location: "Tokashiki", url: "#" },
+          { name: "Maehama Beach (Tokashiki)", name_jp: "前浜ビーチ", desc: "A quiet local beach with shallow water and coral formations.", location: "Tokashiki", url: "#" },
+          { name: "Sotohanare Beach", name_jp: "外離れビーチ", desc: "A remote beach on a small offshore islet, reachable by swimming at low tide.", location: "Tokashiki", url: "#" }
+        ]
+      },
+      akajima: {
+        spots: [
+          { name: "Nishihama Sunset Point", name_jp: "ニシ浜夕日ポイント", desc: "Famous for spectacular sunsets over the ocean, with a wooden deck.", location: "Akajima", url: "#" },
+          { name: "Akajima Marine Village", name_jp: "阿嘉島マリンビレッジ", desc: "A diving and eco-tourism hub offering sea turtle watching tours.", location: "Akajima", url: "#" },
+          { name: "Shirashijima Island (uninhabited)", name_jp: "シラシジマ", desc: "A tiny uninhabited island often visited by boat for snorkeling and picnics.", location: "Akajima", url: "#" },
+          { name: "Akajima Lighthouse", name_jp: "阿嘉島灯台", desc: "A white lighthouse on a hill with beautiful coastal views.", location: "Akajima", url: "#" },
+          { name: "Kerama Deer Observation", name_jp: "ケラマジカ観察", desc: "Wild Kerama deer (a rare subspecies) can be spotted in the forest.", location: "Akajima", url: "#" }
+        ],
+        beaches: [
+          { name: "Nishihama Beach", name_jp: "ニシ浜", desc: "A stunning white-sand beach with incredibly clear water, often ranked among Japan's best.", location: "Akajima", url: "#" },
+          { name: "Maehama Beach (Akajima)", name_jp: "前浜ビーチ", desc: "A quiet beach near the port, suitable for a relaxing swim.", location: "Akajima", url: "#" },
+          { name: "Shirashijima Beach", name_jp: "シラシジマ浜", desc: "An untouched beach on the uninhabited island, accessible by tour boat.", location: "Akajima", url: "#" },
+          { name: "Toka Beach", name_jp: "東風浜", desc: "Small cove with rocky formations, good for exploring tide pools.", location: "Akajima", url: "#" },
+          { name: "Nakanoshima Beach", name_jp: "中ノ島ビーチ", desc: "A hidden gem only reachable by foot at low tide.", location: "Akajima", url: "#" }
+        ]
+      },
+      zamami: {
+        spots: [
+          { name: "Furuzamami Beach Viewpoint", name_jp: "古座間味ビーチ展望台", desc: "Iconic viewpoint overlooking the emerald bay of Furuzamami.", location: "Zamami", url: "#" },
+          { name: "Zamami Port Village", name_jp: "座間味港集落", desc: "A charming village with traditional Ryukyu houses and small shops.", location: "Zamami", url: "#" },
+          { name: "Takatsukiyama Observation Deck", name_jp: "高月山展望台", desc: "Panoramic view of the entire Zamami island chain and coral reefs.", location: "Zamami", url: "#" },
+          { name: "Sea Turtle Museum", name_jp: "ウミガメ博物館", desc: "Small museum dedicated to the conservation of sea turtles in Kerama.", location: "Zamami", url: "#" },
+          { name: "Ama Rock", name_jp: "阿真岩", desc: "A large rock formation off the coast, said to be a sacred place for fishermen.", location: "Zamami", url: "#" }
+        ],
+        beaches: [
+          { name: "Furuzamami Beach", name_jp: "古座間味ビーチ", desc: "The most famous beach in Zamami, with powdery white sand and abundant tropical fish.", location: "Zamami", url: "#" },
+          { name: "Ama Beach", name_jp: "阿真ビーチ", desc: "A shallow, calm beach where sea turtles often come to feed.", location: "Zamami", url: "#" },
+          { name: "Kitahama Beach", name_jp: "北浜", desc: "A quieter alternative to Furuzamami, with soft sand and good snorkeling.", location: "Zamami", url: "#" },
+          { name: "Gahi Beach", name_jp: "雅日浜", desc: "A remote beach accessible by a short hike, offering solitude and natural beauty.", location: "Zamami", url: "#" },
+          { name: "Yokobushi Beach", name_jp: "ヨコブシビーチ", desc: "A tiny cove with crystal clear water, great for snorkeling off the rocks.", location: "Zamami", url: "#" }
+        ]
+      }
+    };
+
+    // 石垣・宮古：サブエリア（石垣島、宮古島）
+    const ishimiyaSubAreas = {
+      ishigaki: { name: "Ishigaki Island", name_jp: "石垣島", img: "https://placehold.co/600x400/2d6a4f/white?text=Ishigaki" },
+      miyako: { name: "Miyako Island", name_jp: "宮古島", img: "https://placehold.co/600x400/0b5e42/white?text=Miyako" }
+    };
+
+    const ishimiyaDetailedData = {
+      ishigaki: {
+        spots: [
+          { name: "Kabira Bay", name_jp: "川平湾", desc: "A breathtaking emerald bay dotted with small islands; glass-bottom boat tours available.", location: "Ishigaki", url: "https://visit-ishigaki.jp/en/spot/kabira-bay/" },
+          { name: "Mt. Omoto", name_jp: "於茂登岳", desc: "The highest peak in Okinawa Prefecture, offering jungle trekking and panoramic views.", location: "Ishigaki", url: "#" },
+          { name: "Yonehara Beach Coral Reef", name_jp: "米原ビーチのサンゴ", desc: "Home to one of the largest areas of blue coral in Japan, accessible by snorkeling.", location: "Ishigaki", url: "#" },
+          { name: "Ishigaki Stalactite Cave", name_jp: "石垣島鍾乳洞", desc: "A 3.2km-long limestone cave with impressive stalactite formations.", location: "Ishigaki", url: "#" },
+          { name: "Tamatorizaki Observatory", name_jp: "玉取崎展望台", desc: "A scenic overlook with views of the Pacific Ocean and the rugged coastline.", location: "Ishigaki", url: "#" }
+        ],
+        beaches: [
+          { name: "Yonehara Beach", name_jp: "米原ビーチ", desc: "A popular snorkeling spot with easy access from the road and shallow coral gardens.", location: "Ishigaki", url: "#" },
+          { name: "Sukuji Beach", name_jp: "底地ビーチ", desc: "A calm, shallow beach ideal for families, with a view of Kabira Bay's entrance.", location: "Ishigaki", url: "#" },
+          { name: "Fusaki Beach", name_jp: "フサキビーチ", desc: "A resort beach inside Fusaki Resort Village, with water sports and facilities.", location: "Ishigaki", url: "#" },
+          { name: "Hirakubo Beach", name_jp: "平久保ビーチ", desc: "A remote, wild beach at the northern tip, known for its dramatic scenery.", location: "Ishigaki", url: "#" },
+          { name: "Tōjinbaka", name_jp: "唐人墓", desc: "Not a beach but a historical monument; nearby cove offers quiet sand.", location: "Ishigaki", url: "#" }
+        ]
+      },
+      miyako: {
+        spots: [
+          { name: "Yonaha Maehama Beach", name_jp: "与那覇前浜ビーチ", desc: "A 7km stretch of pristine white sand, often called 'the most beautiful beach in the Far East'.", location: "Miyakojima", url: "#" },
+          { name: "Higashi Hennazaki Lighthouse", name_jp: "東平安名崎灯台", desc: "A scenic cape with a lighthouse, offering 360-degree ocean views.", location: "Miyakojima", url: "#" },
+          { name: "Irabu Bridge", name_jp: "伊良部大橋", desc: "A 3.5km-long bridge connecting Miyakojima to Irabujima, with stunning blue water below.", location: "Miyakojima", url: "#" },
+          { name: "Sunayama Beach Arch", name_jp: "砂山ビーチのアーチ", desc: "A natural stone arch eroded by waves, accessible from the beach.", location: "Miyakojima", url: "#" },
+          { name: "Miyakojima City Tropical Plant Garden", name_jp: "宮古島市熱帯植物園", desc: "A lush garden with exotic plants, butterflies, and walking trails.", location: "Miyakojima", url: "#" }
+        ],
+        beaches: [
+          { name: "Sunayama Beach", name_jp: "砂山ビーチ", desc: "A beautiful cove with fine white sand and a unique rock arch, accessed via a short sand dune walk.", location: "Miyakojima", url: "#" },
+          { name: "Yoshino Beach", name_jp: "吉野海岸", desc: "A popular snorkeling beach with well-developed facilities and coral reefs.", location: "Miyakojima", url: "#" },
+          { name: "Shigira Beach", name_jp: "シギラビーチ", desc: "A resort beach part of Shigira Bay Country Club, with calm waters and luxury amenities.", location: "Miyakojima", url: "#" },
+          { name: "Nakanoshima Beach (Miyako)", name_jp: "中ノ島ビーチ", desc: "A quiet beach on a small island connected by a bridge, good for relaxation.", location: "Miyakojima", url: "#" },
+          { name: "Tōriike Ponds", name_jp: "通り池", desc: "Two connected marine ponds with deep blue water, popular for diving.", location: "Miyakojima", url: "#" }
+        ]
+      }
+    };
+
     // 多言語テキスト
     const translations = {
-      en: { title:"Okinawa Travel Guide", back:"← Back", backHome:"🏠 Home", spots:"Sightseeing Spots", beaches:"Beaches", location:"Location", official:"Official Website", sponsor:"Sponsored", contact:"Contact us" },
-      it: { title:"Guida di Okinawa", back:"← Indietro", backHome:"🏠 Home", spots:"Luoghi turistici", beaches:"Spiagge", location:"Posizione", official:"Sito ufficiale", sponsor:"Sponsorizzato", contact:"Contattaci" },
-      ru: { title:"Путеводитель по Окинаве", back:"← Назад", backHome:"🏠 Главная", spots:"Достопримечательности", beaches:"Пляжи", location:"Местоположение", official:"Официальный сайт", sponsor:"Спонсор", contact:"Свяжитесь с нами" },
-      ja: { title:"沖縄トラベルガイド", back:"← 戻る", backHome:"🏠 ホーム", spots:"観光名所", beaches:"ビーチ", location:"所在地", official:"公式サイト", sponsor:"スポンサー", contact:"お問い合わせ" }
+      en: { title:"Okinawa Travel Guide", back:"← Back", backHome:"🏠 Home", spots:"Sightseeing Spots", beaches:"Beaches", location:"Location", official:"Official Website", sponsor:"Sponsored", contact:"Contact us", yanbaru:"Yanbaru", motobu:"Motobu Peninsula", onnna:"Onna & Yomitan (North Resort)", central:"Central Area (Okinawa City, Uruma, Kadena, American Village)", naha:"Naha & Surroundings", southern:"Southern Area (Itoman, Yaese, Nanjo)", kerama:"Kerama Islands", ishigaki_miyako:"Ishigaki & Miyako Islands", sub_areas:"Choose an Island" },
+      it: { title:"Guida di Okinawa", back:"← Indietro", backHome:"🏠 Home", spots:"Attrazioni", beaches:"Spiagge", location:"Posizione", official:"Sito ufficiale", sponsor:"Sponsorizzato", contact:"Contattaci", yanbaru:"Yanbaru", motobu:"Penisola di Motobu", onnna:"Onna & Yomitan (Resort nord)", central:"Area centrale", naha:"Naha e dintorni", southern:"Area meridionale", kerama:"Isole Kerama", ishigaki_miyako:"Isole Ishigaki e Miyako", sub_areas:"Scegli un'isola" },
+      ru: { title:"Путеводитель по Окинаве", back:"← Назад", backHome:"🏠 Главная", spots:"Достопримечательности", beaches:"Пляжи", location:"Местоположение", official:"Официальный сайт", sponsor:"Спонсор", contact:"Свяжитесь с нами", yanbaru:"Ямбару", motobu:"Полуостров Мотобу", onnna:"Онна & Йомитан", central:"Центральный район", naha:"Наха и окрестности", southern:"Южный район", kerama:"Острова Керама", ishigaki_miyako:"Исигаки и Мияко", sub_areas:"Выберите остров" },
+      ja: { title:"沖縄トラベルガイド", back:"← 戻る", backHome:"🏠 ホーム", spots:"観光名所", beaches:"ビーチ", location:"所在地", official:"公式サイト", sponsor:"スポンサー", contact:"お問い合わせ", yanbaru:"やんばる", motobu:"本部半島", onnna:"恩納村・読谷村", central:"中部 (沖縄市・うるま市・嘉手納・アメリカンビレッジ)", naha:"那覇とその周辺", southern:"南部 (糸満・八重瀬・南城)", kerama:"慶良間諸島", ishigaki_miyako:"石垣島・宮古島", sub_areas:"島を選ぶ" }
     };
-    
-    let currentPage = "home";
+
+    // 状態管理
+    let currentPage = "home";           // home, area, subarea, item
     let selectedAreaId = null;
-    let selectedItem = null;  // {areaId, type, index}
+    let selectedSubAreaId = null;       // for kerama or ishigaki_miyako
+    let selectedItem = null;            // { areaId, subAreaId, type, index }
     
-    // レンダリング
+    // ヘルパー関数
+    function t(key) { return translations[currentLang][key] || key; }
+    function localName(obj) {
+      if (currentLang === "ja") return obj.name_jp || obj.name;
+      return obj.name;
+    }
+
+    // 描画関数
     function render() {
       const main = document.getElementById("main-content");
-      if(currentPage === "home") renderHome(main);
-      else if(currentPage === "area") renderAreaDetail(main);
-      else if(currentPage === "item") renderItemDetail(main);
+      if (currentPage === "home") renderHome(main);
+      else if (currentPage === "area") renderArea(main);
+      else if (currentPage === "subarea") renderSubArea(main);
+      else if (currentPage === "item") renderItem(main);
       updateTitle();
     }
-    
-    function t(key) { return translations[currentLang][key] || key; }
-    
-    function localName(item) {
-      if(currentLang === "ja") return item.name_jp || item.name;
-      return item.name;
-    }
-    
+
     function renderHome(container) {
       let html = `<div class="sponsor"><img src="https://placehold.co/800x150/222/white?text=Your+Ad+Here" alt="sponsor"><p><a href="#">${t("sponsor")} Link →</a></p></div>`;
       html += `<div class="grid">`;
-      for(let area of areas) {
+      for (let area of areas) {
         let name = t(area.nameKey) || area.id;
-        if(currentLang==="ja") name = { yanbaru:"やんばる", motobu:"本部半島", onnna_yomitan:"恩納村・読谷村", chubu:"中部", naha:"那覇周辺", southern:"南部", kerama:"慶良間諸島", ishigaki_miyako:"石垣・宮古" }[area.id] || area.id;
         html += `<div class="card" data-area="${area.id}">
           <img class="card-img" src="${area.img}" alt="${name}">
           <div class="card-content"><div class="card-title">${name}</div></div>
         </div>`;
       }
       html += `</div><div class="sponsor"><img src="https://placehold.co/800x150/222/white?text=Sponsored+by+Okinawa+Tourism" alt="sponsor"><p><a href="#">${t("sponsor")} Official</a></p></div>`;
-      html += `<div class="map-container"><iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d573234.9839075002!2d127.50022878921028!3d26.47304855040876!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x34e4e0a2d3e8e5b1%3A0x8f8b6d5c4a3e2f0!2sOkinawa%2C%20Japan!5e0!3m2!1sen!2sus!4v1712123456789!5m2!1sen!2sus" allowfullscreen loading="lazy"></iframe></div>`;
+      html += `<div class="map-container"><iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!d573234.9839075002!2d127.50022878921028!3d26.47304855040876!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x34e4e0a2d3e8e5b1%3A0x8f8b6d5c4a3e2f0!2sOkinawa%2C%20Japan!5e0!3m2!1sen!2sus!4v1712123456789!5m2!1sen!2sus" allowfullscreen loading="lazy"></iframe></div>`;
       container.innerHTML = html;
       document.querySelectorAll(".card").forEach(card => {
-        card.addEventListener("click", (e) => { selectedAreaId = card.dataset.area; currentPage = "area"; render(); });
+        card.addEventListener("click", () => {
+          selectedAreaId = card.dataset.area;
+          // エリアが kerama または ishigaki_miyako の場合はサブエリア選択ページへ
+          if (selectedAreaId === "kerama" || selectedAreaId === "ishigaki_miyako") {
+            currentPage = "subarea";
+          } else {
+            currentPage = "area";
+            selectedSubAreaId = null;
+          }
+          render();
+        });
       });
     }
-    
-    function renderAreaDetail(container) {
-      const area = areas.find(a=>a.id === selectedAreaId);
-      if(!area) { currentPage="home"; render(); return; }
-      const data = spotsData[selectedAreaId] || { spots:[], beaches:[] };
-      let name = area.nameKey;
-      let areaDisplay = currentLang==="ja"? { yanbaru:"やんばる", motobu:"本部半島", onnna_yomitan:"恩納村・読谷村", chubu:"中部", naha:"那覇周辺", southern:"南部", kerama:"慶良間諸島", ishigaki_miyako:"石垣・宮古" }[area.id] : area.id;
+
+    function renderArea(container) {
+      // 通常エリア (データは normalAreaData から)
+      const data = normalAreaData[selectedAreaId];
+      if (!data) { currentPage = "home"; render(); return; }
+      let areaName = t(selectedAreaId) || selectedAreaId;
       let html = `<div class="back-bar"><button class="back-btn" data-action="home">${t("backHome")}</button><button class="back-btn" data-action="back">${t("back")}</button></div>`;
-      html += `<h2>${areaDisplay}</h2><h3>${t("spots")}</h3><div class="item-list">`;
+      html += `<h2>${areaName}</h2><h3>${t("spots")}</h3><div class="item-list">`;
       data.spots.forEach((spot, idx) => {
-        html += `<div class="item-card" data-type="spot" data-index="${idx}"><h3>${localName(spot)}</h3><p>${spot.desc || ""}</p></div>`;
+        html += `<div class="item-card" data-type="spot" data-index="${idx}"><h3>${localName(spot)}</h3><p>${spot.desc.substring(0, 80)}...</p></div>`;
       });
       html += `</div><h3>${t("beaches")}</h3><div class="item-list">`;
       data.beaches.forEach((beach, idx) => {
-        html += `<div class="item-card" data-type="beach" data-index="${idx}"><h3>${localName(beach)}</h3><p>${beach.desc || ""}</p></div>`;
+        html += `<div class="item-card" data-type="beach" data-index="${idx}"><h3>${localName(beach)}</h3><p>${beach.desc.substring(0, 80)}...</p></div>`;
       });
       html += `</div>`;
       container.innerHTML = html;
-      document.querySelectorAll(".back-btn").forEach(btn => {
-        btn.addEventListener("click", (e) => { if(btn.dataset.action==="home"){ currentPage="home"; render(); } else { history.back(); } });
-      });
+      attachBackButtons();
       document.querySelectorAll(".item-card").forEach(card => {
         card.addEventListener("click", (e) => {
-          selectedItem = { areaId: selectedAreaId, type: card.dataset.type, index: parseInt(card.dataset.index) };
+          selectedItem = { areaId: selectedAreaId, subAreaId: null, type: card.dataset.type, index: parseInt(card.dataset.index) };
           currentPage = "item";
           render();
         });
       });
     }
-    
-    function renderItemDetail(container) {
-      if(!selectedItem) { currentPage="home"; render(); return; }
-      const areaData = spotsData[selectedItem.areaId];
-      const list = selectedItem.type === "spot" ? areaData.spots : areaData.beaches;
-      const item = list[selectedItem.index];
-      if(!item) { currentPage="area"; render(); return; }
-      let html = `<div class="back-bar"><button class="back-btn" data-action="home">${t("backHome")}</button><button class="back-btn" data-action="area">← ${t("back")}</button></div>`;
-      html += `<div class="detail-card"><h2>${localName(item)}</h2><img class="detail-img" src="https://placehold.co/800x400/1f2a3e/white?text=${encodeURIComponent(localName(item))}" alt="${localName(item)}">`;
-      html += `<p><strong>${t("location")}:</strong> ${item.location || "Okinawa"}</p><p>${item.desc || "Beautiful place in Okinawa."}</p>`;
-      if(item.url && item.url !== "#") html += `<a class="official-link" href="${item.url}" target="_blank">${t("official")} ↗</a>`;
-      else html += `<a class="official-link" href="#">${t("official")} (仮リンク)</a>`;
+
+    function renderSubArea(container) {
+      // 慶良間または石垣・宮古のサブエリア一覧
+      let subAreas, detailedData;
+      if (selectedAreaId === "kerama") {
+        subAreas = keramaSubAreas;
+        detailedData = keramaDetailedData;
+      } else {
+        subAreas = ishimiyaSubAreas;
+        detailedData = ishimiyaDetailedData;
+      }
+      let areaName = t(selectedAreaId);
+      let html = `<div class="back-bar"><button class="back-btn" data-action="home">${t("backHome")}</button><button class="back-btn" data-action="back">${t("back")}</button></div>`;
+      html += `<h2>${areaName}</h2><p>${t("sub_areas")}</p><div class="grid">`;
+      for (let [key, sub] of Object.entries(subAreas)) {
+        let subName = currentLang === "ja" ? sub.name_jp : sub.name;
+        html += `<div class="card" data-sub="${key}">
+          <img class="card-img" src="${sub.img}" alt="${subName}">
+          <div class="card-content"><div class="card-title">${subName}</div></div>
+        </div>`;
+      }
       html += `</div>`;
       container.innerHTML = html;
-      document.querySelectorAll(".back-btn").forEach(btn => {
-        btn.addEventListener("click", (e) => {
-          if(btn.dataset.action==="home") { currentPage="home"; render(); }
-          else { currentPage="area"; render(); }
+      attachBackButtons();
+      document.querySelectorAll(".card").forEach(card => {
+        card.addEventListener("click", () => {
+          selectedSubAreaId = card.dataset.sub;
+          currentPage = "area";  // サブエリア選択後、その島のデータを表示
+          render();
         });
       });
     }
-    
+
+    // 上記renderAreaを拡張し、サブエリアデータも扱えるようにする
+    // 現在のrenderAreaは通常エリアのみ。サブエリアがある場合はデータソースを切り替える
+    // 修正：renderAreaでselectedSubAreaIdがある場合は detailedData から取得
+    function renderArea(container) {
+      let data;
+      let areaName;
+      if (selectedSubAreaId) {
+        // 慶良間または石垣・宮古のサブエリア詳細
+        if (selectedAreaId === "kerama") {
+          data = keramaDetailedData[selectedSubAreaId];
+          areaName = currentLang === "ja" ? keramaSubAreas[selectedSubAreaId].name_jp : keramaSubAreas[selectedSubAreaId].name;
+        } else {
+          data = ishimiyaDetailedData[selectedSubAreaId];
+          areaName = currentLang === "ja" ? ishimiyaSubAreas[selectedSubAreaId].name_jp : ishimiyaSubAreas[selectedSubAreaId].name;
+        }
+        if (!data) { currentPage = "home"; render(); return; }
+      } else {
+        data = normalAreaData[selectedAreaId];
+        if (!data) { currentPage = "home"; render(); return; }
+        areaName = t(selectedAreaId) || selectedAreaId;
+      }
+      let html = `<div class="back-bar"><button class="back-btn" data-action="home">${t("backHome")}</button><button class="back-btn" data-action="back">${t("back")}</button></div>`;
+      html += `<h2>${areaName}</h2><h3>${t("spots")}</h3><div class="item-list">`;
+      data.spots.forEach((spot, idx) => {
+        html += `<div class="item-card" data-type="spot" data-index="${idx}"><h3>${localName(spot)}</h3><p>${spot.desc.substring(0, 100)}...</p></div>`;
+      });
+      html += `</div><h3>${t("beaches")}</h3><div class="item-list">`;
+      data.beaches.forEach((beach, idx) => {
+        html += `<div class="item-card" data-type="beach" data-index="${idx}"><h3>${localName(beach)}</h3><p>${beach.desc.substring(0, 100)}...</p></div>`;
+      });
+      html += `</div>`;
+      container.innerHTML = html;
+      attachBackButtons();
+      document.querySelectorAll(".item-card").forEach(card => {
+        card.addEventListener("click", () => {
+          selectedItem = { areaId: selectedAreaId, subAreaId: selectedSubAreaId, type: card.dataset.type, index: parseInt(card.dataset.index) };
+          currentPage = "item";
+          render();
+        });
+      });
+    }
+
+    function renderItem(container) {
+      let itemData;
+      if (selectedItem.subAreaId) {
+        // サブエリア内のアイテム
+        let parentData;
+        if (selectedItem.areaId === "kerama") parentData = keramaDetailedData[selectedItem.subAreaId];
+        else parentData = ishimiyaDetailedData[selectedItem.subAreaId];
+        if (!parentData) { currentPage = "home"; render(); return; }
+        const list = selectedItem.type === "spot" ? parentData.spots : parentData.beaches;
+        itemData = list[selectedItem.index];
+      } else {
+        const parentData = normalAreaData[selectedItem.areaId];
+        if (!parentData) { currentPage = "home"; render(); return; }
+        const list = selectedItem.type === "spot" ? parentData.spots : parentData.beaches;
+        itemData = list[selectedItem.index];
+      }
+      if (!itemData) { currentPage = "home"; render(); return; }
+
+      let html = `<div class="back-bar"><button class="back-btn" data-action="home">${t("backHome")}</button><button class="back-btn" data-action="area">← ${t("back")}</button></div>`;
+      html += `<div class="detail-card"><h2>${localName(itemData)}</h2><img class="detail-img" src="https://placehold.co/800x400/1f2a3e/white?text=${encodeURIComponent(localName(itemData))}" alt="${localName(itemData)}">`;
+      html += `<p><strong>${t("location")}:</strong> ${itemData.location || "Okinawa"}</p><p>${itemData.desc}</p>`;
+      if (itemData.url && itemData.url !== "#") html += `<a class="official-link" href="${itemData.url}" target="_blank">${t("official")} ↗</a>`;
+      else html += `<a class="official-link" href="#">${t("official")} (example link)</a>`;
+      html += `</div>`;
+      container.innerHTML = html;
+      attachBackButtons();
+    }
+
+    function attachBackButtons() {
+      document.querySelectorAll(".back-btn").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          if (btn.dataset.action === "home") {
+            currentPage = "home";
+            selectedAreaId = null;
+            selectedSubAreaId = null;
+            selectedItem = null;
+            render();
+          } else if (btn.dataset.action === "back") {
+            // 戻る処理
+            if (currentPage === "item") {
+              currentPage = "area";
+              render();
+            } else if (currentPage === "area") {
+              if (selectedSubAreaId) {
+                currentPage = "subarea";
+                selectedSubAreaId = null;
+                render();
+              } else {
+                currentPage = "home";
+                selectedAreaId = null;
+                render();
+              }
+            } else if (currentPage === "subarea") {
+              currentPage = "home";
+              selectedAreaId = null;
+              render();
+            }
+          } else if (btn.dataset.action === "area") {
+            currentPage = "area";
+            render();
+          }
+        });
+      });
+    }
+
     function updateTitle() { document.getElementById("app-title").innerText = translations[currentLang].title; }
     function setLang(lang) { currentLang = lang; render(); }
     function setTheme(theme) { document.body.className = theme; currentTheme = theme; localStorage.setItem("theme", theme); }
-    
-    // UI初期化
+
     function initUI() {
       const langContainer = document.getElementById("lang-buttons");
-      for(let [code, name] of Object.entries(languages)) {
+      for (let [code, label] of Object.entries(languages)) {
         let btn = document.createElement("button");
-        btn.innerText = name;
+        btn.innerHTML = label;
         btn.classList.add("lang-btn");
-        if(code === currentLang) btn.classList.add("active");
+        if (code === currentLang) btn.classList.add("active");
         btn.onclick = () => { setLang(code); document.querySelectorAll(".lang-btn").forEach(b=>b.classList.remove("active")); btn.classList.add("active"); };
         langContainer.appendChild(btn);
       }
@@ -443,9 +702,8 @@
       setTheme(savedTheme);
       render();
     }
-    
-    // サービスワーカー登録
-    if('serviceWorker' in navigator) {
+
+    if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').then(reg => console.log('SW registered', reg)).catch(err => console.log('SW failed', err));
     }
     initUI();
